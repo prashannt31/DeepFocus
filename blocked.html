@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Deep Focus — Blocked</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --accent: #7c6af7;
+    --accent-glow: rgba(124,106,247,0.4);
+    --danger: #f76a6a;
+    --text: #e8e8f0;
+    --muted: #6b6b88;
+    --font-display: 'Bebas Neue', cursive;
+    --font-body: 'Space Mono', monospace;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    min-height: 100vh;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-family: var(--font-body);
+    overflow: hidden;
+    color: var(--text);
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(124,106,247,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,106,247,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  /* Glow blob */
+  .blob {
+    position: fixed;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(124,106,247,0.12) 0%, transparent 70%);
+    border-radius: 50%;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    animation: breathe 4s ease-in-out infinite;
+  }
+
+  @keyframes breathe {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+    50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+  }
+
+  .container {
+    position: relative; z-index: 1;
+    text-align: center;
+    max-width: 480px;
+    padding: 40px 30px;
+    animation: fadeUp 0.6s ease forwards;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .lock-icon {
+    font-size: 64px;
+    margin-bottom: 24px;
+    display: block;
+    animation: wiggle 2s ease-in-out infinite;
+  }
+
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(-3deg); }
+    50% { transform: rotate(3deg); }
+  }
+
+  .big-title {
+    font-family: var(--font-display);
+    font-size: 72px;
+    letter-spacing: 4px;
+    line-height: 1;
+    color: var(--accent);
+    text-shadow: 0 0 40px var(--accent-glow);
+    margin-bottom: 8px;
+  }
+
+  .sub-title {
+    font-family: var(--font-display);
+    font-size: 28px;
+    letter-spacing: 6px;
+    color: var(--muted);
+    margin-bottom: 32px;
+  }
+
+  .divider {
+    width: 60px; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    margin: 0 auto 32px;
+  }
+
+  .message {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 2;
+    letter-spacing: 0.5px;
+    margin-bottom: 36px;
+  }
+
+  .message strong { color: var(--text); }
+
+  /* Timer display */
+  .timer-info {
+    background: rgba(124,106,247,0.08);
+    border: 1px solid rgba(124,106,247,0.25);
+    border-radius: 14px;
+    padding: 16px 24px;
+    display: inline-block;
+    margin-bottom: 32px;
+  }
+
+  .timer-info-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .timer-info-time {
+    font-family: var(--font-display);
+    font-size: 42px;
+    letter-spacing: 3px;
+    color: var(--accent);
+  }
+
+  /* Quotes */
+  .quote {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    font-style: italic;
+    border-left: 2px solid var(--accent);
+    padding-left: 12px;
+    text-align: left;
+    line-height: 1.8;
+    max-width: 320px;
+    margin: 0 auto;
+  }
+
+  .quote cite {
+    display: block;
+    margin-top: 6px;
+    color: #4a4a66;
+    font-style: normal;
+  }
+</style>
+</head>
+<body>
+<div class="blob"></div>
+
+<div class="container">
+  <span class="lock-icon">🔒</span>
+  <div class="big-title">BLOCKED</div>
+  <div class="sub-title">STAY FOCUSED</div>
+  <div class="divider"></div>
+
+  <p class="message">
+    You tried to open a <strong>distraction site</strong>.<br/>
+    Your Deep Focus session is still active.<br/>
+    Come back when you're done.
+  </p>
+
+  <div class="timer-info">
+    <div class="timer-info-label">Time Remaining</div>
+    <div class="timer-info-time" id="countdown">--:--</div>
+  </div>
+
+  <blockquote class="quote">
+    "The ability to perform deep work is becoming increasingly rare and increasingly valuable."
+    <cite>— Cal Newport</cite>
+  </blockquote>
+</div>
+
+<script>
+  function fmtTime(s) {
+    return `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+  }
+  function tick() {
+    chrome.runtime.sendMessage({ action: "getState" }, (state) => {
+      if (state && state.active && state.endTime) {
+        const rem = Math.max(0, Math.round((state.endTime - Date.now()) / 1000));
+        document.getElementById("countdown").textContent = fmtTime(rem);
+      } else {
+        document.getElementById("countdown").textContent = "00:00";
+      }
+    });
+  }
+  tick();
+  setInterval(tick, 1000);
+</script>
+</body>
+</html>

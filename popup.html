@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Deep Focus</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a26;
+    --border: #2a2a40;
+    --accent: #7c6af7;
+    --accent-glow: rgba(124,106,247,0.35);
+    --accent2: #f7c96a;
+    --text: #e8e8f0;
+    --muted: #6b6b88;
+    --danger: #f76a6a;
+    --success: #6af7b8;
+    --font-display: 'Bebas Neue', cursive;
+    --font-body: 'Space Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 340px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    overflow: hidden;
+  }
+
+  /* Noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 999; opacity: 0.4;
+  }
+
+  .header {
+    padding: 18px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .logo-icon {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    box-shadow: 0 0 16px var(--accent-glow);
+  }
+
+  .logo-text {
+    font-family: var(--font-display);
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: var(--text);
+  }
+
+  .logo-text span { color: var(--accent); }
+
+  .status-dot {
+    margin-left: auto;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--muted);
+    transition: all 0.4s;
+  }
+  .status-dot.active {
+    background: var(--success);
+    box-shadow: 0 0 10px var(--success);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* Timer ring section */
+  .timer-section {
+    padding: 24px 20px 16px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+
+  .ring-wrap {
+    position: relative;
+    width: 150px; height: 150px;
+  }
+
+  .ring-svg {
+    width: 150px; height: 150px;
+    transform: rotate(-90deg);
+  }
+
+  .ring-bg {
+    fill: none;
+    stroke: var(--surface2);
+    stroke-width: 6;
+  }
+
+  .ring-progress {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 6;
+    stroke-linecap: round;
+    stroke-dasharray: 408;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1s linear, stroke 0.5s;
+    filter: drop-shadow(0 0 6px var(--accent));
+  }
+
+  .ring-progress.warning { stroke: var(--accent2); filter: drop-shadow(0 0 6px var(--accent2)); }
+  .ring-progress.critical { stroke: var(--danger); filter: drop-shadow(0 0 6px var(--danger)); }
+
+  .timer-display {
+    position: absolute;
+    inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+
+  .timer-time {
+    font-family: var(--font-display);
+    font-size: 40px;
+    letter-spacing: 2px;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .timer-label {
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* Slider */
+  .slider-section {
+    padding: 0 20px 20px;
+  }
+
+  .slider-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .slider-label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+
+  .slider-value {
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent-glow);
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+  }
+
+  input[type="range"]:disabled {
+    opacity: 0.4; cursor: not-allowed;
+  }
+
+  /* Toggles */
+  .toggles-section {
+    padding: 0 20px 16px;
+    display: flex; flex-direction: column; gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    transition: border-color 0.2s;
+  }
+
+  .toggle-row:hover { border-color: var(--accent); }
+
+  .toggle-info { display: flex; align-items: center; gap: 10px; }
+
+  .toggle-icon {
+    width: 28px; height: 28px; border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    background: var(--surface2);
+  }
+
+  .toggle-name {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .toggle-sub {
+    font-size: 9px;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+
+  /* Switch */
+  .switch {
+    position: relative; width: 38px; height: 20px;
+    cursor: pointer;
+  }
+  .switch input { display: none; }
+  .switch .track {
+    position: absolute; inset: 0;
+    background: var(--surface2);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    transition: all 0.3s;
+  }
+  .switch input:checked ~ .track {
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 10px var(--accent-glow);
+  }
+  .switch .knob {
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 12px; height: 12px;
+    background: var(--muted);
+    border-radius: 50%;
+    transition: all 0.3s;
+  }
+  .switch input:checked ~ .knob {
+    left: 21px;
+    background: white;
+  }
+
+  /* Strict mode special row */
+  .toggle-row.strict .toggle-icon { background: rgba(247,106,106,0.15); }
+  .toggle-row.strict .toggle-name { color: var(--danger); }
+  .switch.strict input:checked ~ .track {
+    background: var(--danger);
+    border-color: var(--danger);
+    box-shadow: 0 0 10px rgba(247,106,106,0.4);
+  }
+
+  /* Buttons */
+  .buttons-section {
+    padding: 16px 20px 20px;
+    display: flex; gap: 10px;
+  }
+
+  .btn {
+    flex: 1;
+    padding: 12px;
+    border: none; border-radius: 10px;
+    font-family: var(--font-display);
+    font-size: 18px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative; overflow: hidden;
+  }
+
+  .btn::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: white;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .btn:active::after { opacity: 0.08; }
+
+  .btn-start {
+    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    color: white;
+    box-shadow: 0 4px 20px var(--accent-glow);
+  }
+  .btn-start:hover { transform: translateY(-1px); box-shadow: 0 6px 24px var(--accent-glow); }
+  .btn-start:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .btn-abort {
+    background: var(--surface);
+    color: var(--danger);
+    border: 1px solid var(--border);
+  }
+  .btn-abort:hover { border-color: var(--danger); background: rgba(247,106,106,0.1); }
+  .btn-abort:disabled { opacity: 0.25; cursor: not-allowed; }
+
+  /* Message bar */
+  .msg-bar {
+    margin: 0 20px 16px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 10px;
+    letter-spacing: 0.8px;
+    text-align: center;
+    display: none;
+  }
+  .msg-bar.show { display: block; }
+  .msg-bar.info { background: rgba(124,106,247,0.12); color: var(--accent); border: 1px solid rgba(124,106,247,0.3); }
+  .msg-bar.warn { background: rgba(247,106,106,0.12); color: var(--danger); border: 1px solid rgba(247,106,106,0.3); }
+  .msg-bar.ok { background: rgba(106,247,184,0.1); color: var(--success); border: 1px solid rgba(106,247,184,0.25); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo-icon">⚡</div>
+  <div class="logo-text">DEEP <span>FOCUS</span></div>
+  <div class="status-dot" id="statusDot"></div>
+</div>
+
+<div class="timer-section">
+  <div class="ring-wrap">
+    <svg class="ring-svg" viewBox="0 0 150 150">
+      <circle class="ring-bg" cx="75" cy="75" r="65"/>
+      <circle class="ring-progress" id="ringProgress" cx="75" cy="75" r="65"/>
+    </svg>
+    <div class="timer-display">
+      <div class="timer-time" id="timerDisplay">25:00</div>
+      <div class="timer-label" id="timerLabel">READY</div>
+    </div>
+  </div>
+</div>
+
+<div class="slider-section">
+  <div class="slider-header">
+    <span class="slider-label">Focus Duration</span>
+    <span class="slider-value" id="sliderVal">25 min</span>
+  </div>
+  <input type="range" id="durationSlider" min="5" max="120" step="5" value="25" />
+</div>
+
+<div class="toggles-section">
+  <div class="toggle-row">
+    <div class="toggle-info">
+      <div class="toggle-icon">📱</div>
+      <div>
+        <div class="toggle-name">SOCIAL DISTRACTIONS</div>
+        <div class="toggle-sub">Instagram, Twitter, Reddit…</div>
+      </div>
+    </div>
+    <label class="switch">
+      <input type="checkbox" id="blockSocial" checked />
+      <div class="track"></div>
+      <div class="knob"></div>
+    </label>
+  </div>
+
+  <div class="toggle-row">
+    <div class="toggle-info">
+      <div class="toggle-icon">🎬</div>
+      <div>
+        <div class="toggle-name">VIDEO PLATFORMS</div>
+        <div class="toggle-sub">YouTube, Netflix, Twitch…</div>
+      </div>
+    </div>
+    <label class="switch">
+      <input type="checkbox" id="blockVideo" checked />
+      <div class="track"></div>
+      <div class="knob"></div>
+    </label>
+  </div>
+
+  <div class="toggle-row strict">
+    <div class="toggle-info">
+      <div class="toggle-icon">🔒</div>
+      <div>
+        <div class="toggle-name">STRICT MODE</div>
+        <div class="toggle-sub">No abort — commit fully</div>
+      </div>
+    </div>
+    <label class="switch strict">
+      <input type="checkbox" id="strictMode" />
+      <div class="track"></div>
+      <div class="knob"></div>
+    </label>
+  </div>
+</div>
+
+<div class="msg-bar" id="msgBar"></div>
+
+<div class="buttons-section">
+  <button class="btn btn-start" id="btnStart">INITIALIZE</button>
+  <button class="btn btn-abort" id="btnAbort" disabled>ABORT</button>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>
