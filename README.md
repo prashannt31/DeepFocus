@@ -1,4 +1,5 @@
 # ⚡ Deep Focus — Chrome Extension
+![Deep Focus Screenshot](screenshot.png)
 
 A browser productivity extension that blocks distracting websites during timed focus sessions.
 
